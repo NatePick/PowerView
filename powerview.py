@@ -18,7 +18,7 @@ from collections import deque
 # macOS GPU Monitor
 # ============================================================
 
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 
 def setup_permissions():
     """Configure one-time permission for PowerView's GPU helper."""
@@ -31,7 +31,7 @@ def setup_permissions():
     sudoers_path = "/etc/sudoers.d/powerview"
 
     sudoers_content = (
-        f"%admin ALL=(root) NOPASSWD: {helper} *\n"
+        f"%admin ALL=(root) NOPASSWD: {helper}\n"
     )
 
     print("PowerView Setup")
@@ -591,7 +591,7 @@ class PowerView:
         )
     
         command = [
-            "sudo",
+            "/usr/bin/sudo",
             "-n",
             str(helper),
             str(self.config["update_rate"]),
