@@ -1,0 +1,3 @@
+#!/bin/zsh
+
+exec sudo /usr/bin/powermetrics "$@"
