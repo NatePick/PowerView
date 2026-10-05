@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Development backups
+powerview-textual.py
+powerview-v0.2-*.py
+powerview-v0.3-*.py
+
+# Local packaging/testing
+packaging/
