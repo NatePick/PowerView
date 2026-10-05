@@ -1,3 +1,5 @@
 #!/bin/zsh
 
-exec sudo -n /usr/bin/powermetrics "$@"
+exec /usr/bin/powermetrics \
+    --samplers gpu_power \
+    -i "${1:-1000}"

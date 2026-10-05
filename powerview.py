@@ -18,29 +18,32 @@ from collections import deque
 # macOS GPU Monitor
 # ============================================================
 
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 def setup_permissions():
-    """Configure one-time sudo permission for GPU monitoring."""
+    """Configure one-time permission for PowerView's GPU helper."""
+
+    helper = (
+        Path(__file__).resolve().parent
+        / "powerview-helper"
+    )
 
     sudoers_path = "/etc/sudoers.d/powerview"
 
     sudoers_content = (
-        'Defaults:%admin env_keep += "TERMINFO"\n'
-        '%admin ALL=(root) NOPASSWD: '
-        '/usr/bin/powermetrics --samplers gpu_power -i *\n'
+        f"%admin ALL=(root) NOPASSWD: {helper} *\n"
     )
 
     print("PowerView Setup")
     print()
     print(
-        "PowerView requires permission to run Apple's "
-        "powermetrics for GPU monitoring."
+        "PowerView requires administrator permission "
+        "to access GPU monitoring."
     )
     print()
     print(
-        "Administrator access is required for this "
-        "one-time setup."
+        "Administrator access is required once "
+        "to configure PowerView."
     )
     print()
 
@@ -60,20 +63,24 @@ def setup_permissions():
         print("PowerView setup failed.")
         return 1
 
-    subprocess.run(
+    result = subprocess.run(
         [
             "sudo",
             "chmod",
             "440",
             sudoers_path,
-        ],
-        check=True,
+        ]
     )
+
+    if result.returncode != 0:
+        print()
+        print("PowerView setup failed.")
+        return 1
 
     result = subprocess.run(
         [
             "sudo",
-            "visudo",
+            "/usr/sbin/visudo",
             "-c",
         ],
         stdout=subprocess.DEVNULL,
@@ -83,9 +90,8 @@ def setup_permissions():
     if result.returncode != 0:
         print()
         print("ERROR: sudoers validation failed.")
-        print(
-            "Remove the PowerView rule with:"
-        )
+        print()
+        print("Remove the rule with:")
         print(
             "sudo rm /etc/sudoers.d/powerview"
         )
@@ -583,47 +589,43 @@ class PowerView:
             Path(__file__).resolve().parent
             / "powerview-helper"
         )
-
+    
         command = [
+            "sudo",
+            "-n",
             str(helper),
-            "--samplers",
-            "gpu_power",
-            "-i",
             str(self.config["update_rate"]),
         ]
-
+    
+        env = os.environ.copy()
+        env.pop("TERMINFO", None)
+    
         self.process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            env=env,
         )
-
+    
         os.set_blocking(
             self.process.stdout.fileno(),
             False,
         )
 
     def stop_powermetrics(self):
-        if self.process is None:
-            return
-
-        try:
-            self.process.terminate()
-            self.process.wait(timeout=1)
-
-        except Exception:
+        if self.process is not None:
             try:
+                self.process.terminate()
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
                 self.process.kill()
+                self.process.wait()
             except Exception:
                 pass
 
-        self.process = None
-
-    def restart_powermetrics(self):
-        self.stop_powermetrics()
-        self.start_powermetrics()
+            self.process = None
 
     # ========================================================
     # PARSER
@@ -2077,11 +2079,6 @@ class PowerView:
                 pass
 
             self.restore_terminal()
-
-
-# ============================================================
-# START
-# ============================================================
 
 # ============================================================
 # START
