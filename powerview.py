@@ -18,8 +18,86 @@ from collections import deque
 # macOS GPU Monitor
 # ============================================================
 
-VERSION = "0.3"
+VERSION = "0.3.1"
 
+def setup_permissions():
+    """Configure one-time sudo permission for GPU monitoring."""
+
+    sudoers_path = "/etc/sudoers.d/powerview"
+
+    sudoers_content = (
+        'Defaults:%admin env_keep += "TERMINFO"\n'
+        '%admin ALL=(root) NOPASSWD: '
+        '/usr/bin/powermetrics --samplers gpu_power -i *\n'
+    )
+
+    print("PowerView Setup")
+    print()
+    print(
+        "PowerView requires permission to run Apple's "
+        "powermetrics for GPU monitoring."
+    )
+    print()
+    print(
+        "Administrator access is required for this "
+        "one-time setup."
+    )
+    print()
+
+    result = subprocess.run(
+        [
+            "sudo",
+            "tee",
+            sudoers_path,
+        ],
+        input=sudoers_content,
+        text=True,
+        stdout=subprocess.DEVNULL,
+    )
+
+    if result.returncode != 0:
+        print()
+        print("PowerView setup failed.")
+        return 1
+
+    subprocess.run(
+        [
+            "sudo",
+            "chmod",
+            "440",
+            sudoers_path,
+        ],
+        check=True,
+    )
+
+    result = subprocess.run(
+        [
+            "sudo",
+            "visudo",
+            "-c",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    if result.returncode != 0:
+        print()
+        print("ERROR: sudoers validation failed.")
+        print(
+            "Remove the PowerView rule with:"
+        )
+        print(
+            "sudo rm /etc/sudoers.d/powerview"
+        )
+        return 1
+
+    print()
+    print("PowerView setup completed successfully.")
+    print()
+    print("You can now run:")
+    print("    powerview")
+
+    return 0
 
 # ============================================================
 # ANSI TERMINAL CONTROL
@@ -2005,7 +2083,15 @@ class PowerView:
 # START
 # ============================================================
 
+# ============================================================
+# START
+# ============================================================
+
 if __name__ == "__main__":
+    if "--setup" in sys.argv:
+        sys.exit(
+            setup_permissions()
+        )
 
     app = PowerView()
 
@@ -2017,11 +2103,6 @@ if __name__ == "__main__":
 
     signal.signal(
         signal.SIGINT,
-        shutdown,
-    )
-
-    signal.signal(
-        signal.SIGTERM,
         shutdown,
     )
 
