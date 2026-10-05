@@ -11,5 +11,3 @@ powerview-textual.py
 powerview-v0.2-*.py
 powerview-v0.3-*.py
 
-# Local packaging/testing
-packaging/
